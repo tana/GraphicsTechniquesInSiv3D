@@ -138,6 +138,7 @@
     </Filter>
     <Filter Include="Shader Files">
       <UniqueIdentifier>{16379218-03a3-421d-b401-584db767f741}</UniqueIdentifier>
+      <Extensions>hlsl;vert;frag</Extensions>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -148,6 +149,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="utils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ShadowMapping.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VarianceShadowMap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -788,12 +795,21 @@
     <ClInclude Include="utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="VarianceShadowMap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="App\shadow_mapping.hlsl">
       <Filter>Shader Files</Filter>
     </FxCompile>
     <FxCompile Include="App\shadow_map_generation.hlsl">
+      <Filter>Shader Files</Filter>
+    </FxCompile>
+    <FxCompile Include="App\variance_shadow_map_generation.hlsl">
+      <Filter>Shader Files</Filter>
+    </FxCompile>
+    <FxCompile Include="App\variance_shadow_mapping.hlsl">
       <Filter>Shader Files</Filter>
     </FxCompile>
   </ItemGroup>

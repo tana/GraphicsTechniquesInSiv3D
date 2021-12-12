@@ -3,7 +3,7 @@
 # include <Siv3D.hpp>
 # include "utils.h"
 
-// シャドウマッピングで影をつける
+// 分散シャドウマップ（Variance Shadow Map）によるソフトシャドウ
 // ベースはチュートリアル37.1「3Dモデルを描く」（下記のURL）
 //   https://zenn.dev/reputeless/books/siv3d-documentation/viewer/tutorial-3d-2#37.1-3d-%E3%83%A2%E3%83%87%E3%83%AB%E3%82%92%E6%8F%8F%E3%81%8F
 
@@ -13,10 +13,10 @@ struct VSShadowMapping
 	Mat4x4 sunCameraMatrix;
 };
 
-class ShadowMapping : public SceneManager<String>::Scene
+class VarianceShadowMap : public SceneManager<String>::Scene
 {
 public:
-	ShadowMapping(const InitData& initData);
+	VarianceShadowMap(const InitData& initData);
 
 	void update() override;
 
