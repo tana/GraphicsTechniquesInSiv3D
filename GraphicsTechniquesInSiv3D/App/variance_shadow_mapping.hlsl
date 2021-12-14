@@ -1,4 +1,4 @@
-//-----------------------------------------------
+﻿//-----------------------------------------------
 //
 //	This file is part of the Siv3D Engine.
 //
@@ -12,7 +12,7 @@
 // Soft shadow using Variance Shadow Map
 // Based on default3d_forward.hlsl
 
-// References�F
+// References：
 //	 M. Fisher, "Matt's Webcorner - Variance Shadow Maps", https://graphics.stanford.edu/~mdfisher/Shadows.html (accessed: Dec. 12, 2021)
 //	 A. Lauritzen, "Chapter 8. Summed-Area Variance Shadow Maps", in GPU Gems 3, https://developer.nvidia.com/gpugems/gpugems3/part-ii-light-and-shadows/chapter-8-summed-area-variance-shadow-maps (accessed: Dec. 12, 2021)
 
@@ -133,28 +133,28 @@ float3 CalculateSpecularReflection(float3 n, float3 h, float shininess, float nl
 
 float4 PS(s3d::PSInput input) : SV_TARGET
 {
-    // Calculate UV of shadow map
-    const float2 shadowMapUV = float2(
-      0.5 * input.positionFromSun.x / input.positionFromSun.w + 0.5,
-      -0.5 * input.positionFromSun.y / input.positionFromSun.w + 0.5);
+	// Calculate UV of shadow map
+	const float2 shadowMapUV = float2(
+		0.5 * input.positionFromSun.x / input.positionFromSun.w + 0.5,
+		-0.5 * input.positionFromSun.y / input.positionFromSun.w + 0.5);
 
-    float shadowProbMax;
+	float shadowProbMax;
 	if (all(shadowMapUV >= 0.0 && shadowMapUV <= 1.0))
 	{
-        // Look up from shadow map
-        const float2 shadowMapValue = g_shadowMapTexture.Sample(g_shadowMapSampler, shadowMapUV);
-        const float shadowMapDepth = shadowMapValue.r;
-        const float shadowMapDepthSquared = shadowMapValue.g;
-        // Calculate probability of being occuluded from the sun using Chebyshev's inequality
-        // Note: strictly speaking, the inequality used here is Cantelli's inequality, which is one-sided version of Chebyshev's inequality.
-        //	(See: https://en.wikipedia.org/wiki/Cantelli%27s_inequality )
-        const float shadowMapDepthVariance = max(shadowMapDepthSquared - shadowMapDepth * shadowMapDepth, 0.000001);  // Clamping reduces noise
-        const float differenceFromMean = input.positionFromSun.z - shadowMapDepth;
-        shadowProbMax = shadowMapDepthVariance / (shadowMapDepthVariance + differenceFromMean * differenceFromMean);
+		// Look up from shadow map
+		const float2 shadowMapValue = g_shadowMapTexture.Sample(g_shadowMapSampler, shadowMapUV);
+		const float shadowMapDepth = shadowMapValue.r;
+		const float shadowMapDepthSquared = shadowMapValue.g;
+		// Calculate probability of being occuluded from the sun using Chebyshev's inequality
+		// Note: strictly speaking, the inequality used here is Cantelli's inequality, which is one-sided version of Chebyshev's inequality.
+		//	(See: https://en.wikipedia.org/wiki/Cantelli%27s_inequality )
+		const float shadowMapDepthVariance = max(shadowMapDepthSquared - shadowMapDepth * shadowMapDepth, 0.000001);  // Clamping reduces noise
+		const float differenceFromMean = input.positionFromSun.z - shadowMapDepth;
+		shadowProbMax = shadowMapDepthVariance / (shadowMapDepthVariance + differenceFromMean * differenceFromMean);
 	}
 	else
 	{
-        shadowProbMax = 1.0;
+		shadowProbMax = 1.0;
 	}
 
 	const float3 lightColor = g_sunColor * shadowProbMax; // Reduce light intensity according to probability calculated above
@@ -173,5 +173,5 @@ float4 PS(s3d::PSInput input) : SV_TARGET
 	const float3 h = normalize(v + lightDirection);
 	const float3 specularReflection = CalculateSpecularReflection(n, h, g_shininess, dot(n, l), lightColor, g_specularColor);
 
-    return float4(diffuseReflection + specularReflection + g_emissionColor, diffuseColor.a);
+	return float4(diffuseReflection + specularReflection + g_emissionColor, diffuseColor.a);
 }
