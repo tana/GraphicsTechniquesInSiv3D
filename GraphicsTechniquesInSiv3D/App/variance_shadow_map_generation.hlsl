@@ -9,8 +9,12 @@
 //
 //-----------------------------------------------
 
-// Shader for shadow map generation
+// Shader for variance shadow map generation
 // Based on default3d_forward.hlsl
+
+// ReferencesÅF
+//	 M. Fisher, "Matt's Webcorner - Variance Shadow Maps", https://graphics.stanford.edu/~mdfisher/Shadows.html (accessed: Dec. 12, 2021)
+//	 A. Lauritzen, "Chapter 8. Summed-Area Variance Shadow Maps", in GPU Gems 3, https://developer.nvidia.com/gpugems/gpugems3/part-ii-light-and-shadows/chapter-8-summed-area-variance-shadow-maps (accessed: Dec. 12, 2021)
 
 //
 //	Textures
@@ -89,6 +93,7 @@ s3d::PSInput VS(s3d::VSInput input)
 
 float4 PS(s3d::PSInput input) : SV_TARGET
 {
-	// Write interpolated depth
-	return float4(input.position.z, 0.0, 0.0, 1.0);
+    // Write depth and squared depth
+    float depth = input.position.z;
+	return float4(depth, depth * depth, 0.0, 1.0);
 }

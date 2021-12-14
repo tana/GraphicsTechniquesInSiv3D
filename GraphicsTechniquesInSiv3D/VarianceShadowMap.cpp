@@ -6,11 +6,11 @@ const double shadowMapScreenSize = 50;
 const double shadowMapNearClip = 1000;
 const double shadowMapFarClip = 0.1;
 const double sunDistance = 50;
-// シャドウマップの値の大小が逆になっている？
-const double shadowMapDefaultValue = 0.0;	// 何もない場所のシャドウマップの値
+// デプスの値の大小が逆になっている？
+const Float2 shadowMapDefaultValue{ 0.0f, 0.0f };	// 何もない場所のシャドウマップの値
 
 const uint32 shadowMapTextureSlot = 1;	// シェーダでのテクスチャ番号
-const uint32 vsShadowMappingCBSlot = 4;	// VSShadowMappingの定数バッファ番号
+const uint32 vsVarianceShadowMapCBSlot = 4;	// VSVarianceShadowMapの定数バッファ番号
 
 VarianceShadowMap::VarianceShadowMap(const InitData& initData)
 	: IScene{ initData }
@@ -23,11 +23,13 @@ VarianceShadowMap::VarianceShadowMap(const InitData& initData)
 	, pineModel{ U"example/obj/pine.obj" }
 	, siv3dkunModel{ U"example/obj/siv3d-kun.obj" }
 	, renderTexture{ Scene::Size(), TextureFormat::R8G8B8A8_Unorm_SRGB, HasDepth::Yes }
-	, shadowMapTexture{ shadowMapSize, shadowMapSize, TextureFormat::R32_Float, HasDepth::Yes }	// シャドウマップは1チャネルの浮動小数点テクスチャ
-	, shadowMapGenerationVS(HLSL{ U"shadow_map_generation.hlsl", U"VS" })
-	, shadowMapGenerationPS(HLSL{ U"shadow_map_generation.hlsl", U"PS" })
-	, shadowMappingVS(HLSL{ U"shadow_mapping.hlsl", U"VS" })
-	, shadowMappingPS(HLSL{ U"shadow_mapping.hlsl", U"PS" })
+	, shadowMapTexture{ shadowMapSize, shadowMapSize, TextureFormat::R32G32_Float, HasDepth::Yes }	// シャドウマップは2チャネルの浮動小数点テクスチャ
+	, filterTmpTexture{ shadowMapSize, shadowMapSize, TextureFormat::R32G32_Float, HasDepth::No }	// シャドウマップと同じサイズのテクスチャをフィルタの内部用に用意
+	, filteredShadowMapTexture{ shadowMapSize, shadowMapSize, TextureFormat::R32G32_Float, HasDepth::No }	// フィルタ結果を入れるテクスチャ
+	, shadowMapGenerationVS(HLSL{ U"variance_shadow_map_generation.hlsl", U"VS" })
+	, shadowMapGenerationPS(HLSL{ U"variance_shadow_map_generation.hlsl", U"PS" })
+	, shadowMappingVS(HLSL{ U"variance_shadow_mapping.hlsl", U"VS" })
+	, shadowMappingPS(HLSL{ U"variance_shadow_mapping.hlsl", U"PS" })
 	, camera{ Graphics3D::GetRenderTargetSize(), 40_deg, Vec3{ 0, 3, -16 } }
 {
 	// モデルに付随するテクスチャをアセット管理に登録
@@ -48,14 +50,14 @@ void VarianceShadowMap::update()
 	sunProjMatrix = DirectX::XMMatrixOrthographicLH(shadowMapScreenSize, shadowMapScreenSize, shadowMapNearClip, shadowMapFarClip);
 	sunCameraMatrix = worldToSunMatrix * sunProjMatrix;
 
-	cbVSShadowMapping->sunCameraMatrix = sunCameraMatrix;
+	cbVSVarianceShadowMap->sunCameraMatrix = sunCameraMatrix;
 }
 
 void VarianceShadowMap::draw() const
 {
 	// シャドウマップの作成
 	{
-		shadowMapTexture.clear(ColorF{ shadowMapDefaultValue });	// 何もない場所の深度を設定
+		shadowMapTexture.clear(ColorF{ shadowMapDefaultValue.x, shadowMapDefaultValue.y, 0.0 });	// 何もない場所の深度を設定
 
 		const ScopedRenderTarget3D target{ shadowMapTexture };	// 出力先をシャドウマップに設定
 		const ScopedCustomShader3D shader{ shadowMapGenerationVS, shadowMapGenerationPS };	// シェーダを変更
@@ -65,24 +67,26 @@ void VarianceShadowMap::draw() const
 		drawModels();
 	}
 
+	// シャドウマップをガウシアンフィルタでぼかす
+	Shader::GaussianBlur(shadowMapTexture, filterTmpTexture, filteredShadowMapTexture);
+
 	// 画面に映るシーン自体の描画
 	{
 		const ScopedRenderTarget3D target{ renderTexture.clear(backgroundColor) };
 		const ScopedCustomShader3D shader{ shadowMappingVS, shadowMappingPS };
-		// シャドウマップの範囲外が影にならないようにする
+		// Variance shadow mapの場合はLinear filteringを使える
+		// 範囲外の処理はシェーダ側で行うのでサンプラ側のborderは指定しない
 		const ScopedRenderStates3D::SamplerStateInfo samplerStateInfo{
 			.shaderStage = ShaderStage::Pixel,
 			.slot = shadowMapTextureSlot,
-			.state = SamplerState{
-				TextureAddressMode::Border, TextureFilter::Nearest, 1, 0.0f, Float4{ shadowMapDefaultValue, 0.0f, 0.0f, 0.0f  }
-			}
+			.state = SamplerState::ClampLinear
 		};
 		const ScopedRenderStates3D states{ samplerStateInfo };
 
 		Graphics3D::SetCameraTransform(camera);
 
-		Graphics3D::SetPSTexture(shadowMapTextureSlot, shadowMapTexture);
-		Graphics3D::SetVSConstantBuffer(vsShadowMappingCBSlot, cbVSShadowMapping);
+		Graphics3D::SetPSTexture(shadowMapTextureSlot, filteredShadowMapTexture);
+		Graphics3D::SetVSConstantBuffer(vsVarianceShadowMapCBSlot, cbVSVarianceShadowMap);
 
 		drawModels();
 	}
